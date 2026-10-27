@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#050810" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="YouTube Ultra – minimalistische, moderne Video-Oberfläche mit echten YouTube-Inhalten." />
+  <title>YouTube Ultra</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23050810'/%3E%3Cpath d='M13 10.5v11l9-5.5z' fill='%234f8cff'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Fixer Lichtschein-Hintergrund (kein Klick-Target) -->
+  <div id="glow" aria-hidden="true"></div>
+
+  <a class="skip-link" href="#main-view">Zum Inhalt springen</a>
+
+  <div id="app" class="app">
+    <!-- ===== Obere Navigationsleiste ===== -->
+    <header class="topbar" role="banner">
+      <div class="topbar__left">
+        <button id="btn-sidebar" class="iconbtn" aria-label="Menü ein-/ausklappen" aria-expanded="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <a class="logo" href="#/home" aria-label="YouTube Ultra Startseite">
+          <span class="logo__mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="var(--card)"/><path d="M13 10.5v11l9-5.5z" fill="var(--accent)"/></svg>
+          </span>
+          <span class="logo__text">YouTube <b>Ultra</b></span>
+        </a>
+      </div>
+
+      <div class="topbar__center">
+        <form id="search-form" class="searchbar" role="search" autocomplete="off">
+          <button type="button" id="btn-back-search" class="searchbar__back iconbtn" aria-label="Zurück" hidden>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <div class="searchbar__field">
+            <svg class="searchbar__icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="search-input" type="search" name="q" placeholder="Suchen"
+                   aria-label="Suche" aria-autocomplete="list" aria-controls="suggest-list" aria-expanded="false" />
+            <button type="button" id="btn-clear-search" class="searchbar__clear" aria-label="Eingabe löschen" hidden>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <ul id="suggest-list" class="suggest" role="listbox" hidden></ul>
+          </div>
+          <button type="button" id="btn-mic" class="iconbtn searchbar__mic" aria-label="Sprachsuche" hidden>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+          </button>
+          <button type="submit" class="searchbar__submit" aria-label="Suchen">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          </button>
+        </form>
+      </div>
+
+      <div class="topbar__right">
+        <button id="btn-create" class="iconbtn" aria-label="Video erstellen" title="Video erstellen">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        </button>
+        <div class="popover-anchor">
+          <button id="btn-notifications" class="iconbtn" aria-label="Benachrichtigungen" aria-expanded="false">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9z"/><path d="M10 18.5a2 2 0 0 0 4 0"/></svg>
+            <span id="notif-dot" class="iconbtn__dot" hidden></span>
+          </button>
+          <div id="notif-panel" class="popover" hidden></div>
+        </div>
+        <div class="popover-anchor">
+          <button id="btn-profile" class="iconbtn iconbtn--avatar" aria-label="Profil" aria-expanded="false">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+          </button>
+          <div id="profile-panel" class="popover popover--menu" hidden></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== Linke Sidebar ===== -->
+    <nav id="sidebar" class="sidebar" aria-label="Hauptnavigation">
+      <ul class="sidebar__group">
+        <li><a class="side-link" href="#/home" data-nav="home">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6.5 10.5V20h11v-9.5"/></svg>
+          <span>Startseite</span></a></li>
+        <li><a class="side-link" href="#/shorts" data-nav="shorts">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="3"/><path d="M11 9.5v5l4-2.5z" fill="currentColor" stroke="none"/></svg>
+          <span>Shorts</span></a></li>
+        <li><a class="side-link" href="#/subs" data-nav="subs">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 6.5h16M6 10.5h12"/><rect x="3" y="14" width="7" height="6" rx="2"/><rect x="14" y="14" width="7" height="6" rx="2"/></svg>
+          <span>Abos</span></a></li>
+      </ul>
+
+      <div class="sidebar__section">
+        <p class="sidebar__title">Du</p>
+        <ul class="sidebar__group">
+          <li><a class="side-link" href="#/history" data-nav="history">
+            <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+            <span>Verlauf</span></a></li>
+          <li><a class="side-link" href="#/mine" data-nav="mine">
+            <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M10.5 9.5v5l4-2.5z" fill="currentColor" stroke="none"/></svg>
+            <span>Meine Videos</span></a></li>
+          <li><a class="side-link" href="#/later" data-nav="later">
+            <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.5 1.5"/></svg>
+            <span>Später ansehen</span></a></li>
+          <li><a class="side-link" href="#/playlists" data-nav="playlists">
+            <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h11M4 12h11M4 17h7"/><path d="M17.5 12.5v6.2" /><circle cx="16" cy="19" r="2.2"/></svg>
+            <span>Playlists</span></a></li>
+          <li><a class="side-link" href="#/liked" data-nav="liked">
+            <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 20s-7-4.5-7-9.5A4 4 0 0 1 12 7a4 4 0 0 1 7 3.5C19 15.5 12 20 12 20z"/></svg>
+            <span>Gefällt mir</span></a></li>
+        </ul>
+      </div>
+
+      <div class="sidebar__foot">
+        <a class="side-link side-link--small" href="#/settings" data-nav="settings">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.2M12 18.3v2.2M20.5 12h-2.2M5.7 12H3.5M18 6l-1.6 1.6M7.6 16.4 6 18M18 18l-1.6-1.6M7.6 7.6 6 6"/></svg>
+          <span>Einstellungen</span>
+        </a>
+        <p class="sidebar__note" id="source-note">Datenquelle wird geprüft…</p>
+      </div>
+    </nav>
+
+    <div id="sidebar-scrim" class="sidebar-scrim" hidden></div>
+
+    <!-- ===== Hauptbereich ===== -->
+    <main id="main-view" class="view" tabindex="-1" role="main">
+      <div id="view-content"></div>
+    </main>
+
+    <!-- ===== Mobile Bottom Nav ===== -->
+    <nav class="bottomnav" aria-label="Mobile Navigation">
+      <a class="bottomnav__link" href="#/home" data-nav="home">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6.5 10.5V20h11v-9.5"/></svg><span>Start</span>
+      </a>
+      <a class="bottomnav__link" href="#/shorts" data-nav="shorts">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="7" y="3" width="10" height="18" rx="3"/><path d="M11 9.5v5l4-2.5z" fill="currentColor" stroke="none"/></svg><span>Shorts</span>
+      </a>
+      <a class="bottomnav__link" href="#/search" data-nav="search">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Suchen</span>
+      </a>
+      <a class="bottomnav__link" href="#/playlists" data-nav="playlists">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h11M4 12h11M4 17h7"/><circle cx="16" cy="19" r="2.2"/><path d="M17.5 12.5v6.2"/></svg><span>Bibliothek</span>
+      </a>
+      <a class="bottomnav__link" href="#/settings" data-nav="settings">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg><span>Profil</span>
+      </a>
+    </nav>
+  </div>
+
+  <div id="toast-layer" class="toast-layer" aria-live="polite" aria-atomic="false"></div>
+  <div id="menu-layer" class="menu-layer" hidden></div>
+  <div id="modal-layer" class="modal-layer" hidden></div>
+
+  <noscript>
+    <div style="padding:2rem;color:#e8eefc;background:#050810;font-family:sans-serif">
+      Diese App benötigt JavaScript. Bitte aktiviere JavaScript im Browser.
+    </div>
+  </noscript>
+
+  <!-- Optionale Konfiguration (z.&nbsp;B. eigener API-Schlüssel), wird vor app.js geladen -->
+  <script src="js/config.js"></script>
+  <script src="js/types.js"></script>
+  <script src="js/format.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/recommend.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/glow.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/pages/home.js"></script>
+  <script src="js/pages/search.js"></script>
+  <script src="js/pages/watch.js"></script>
+  <script src="js/pages/shorts.js"></script>
+  <script src="js/pages/subs.js"></script>
+  <script src="js/pages/history.js"></script>
+  <script src="js/pages/lists.js"></script>
+  <script src="js/pages/playlists.js"></script>
+  <script src="js/pages/channel.js"></script>
+  <script src="js/pages/settings.js"></script>
+  <script src="js/pages/mine.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
