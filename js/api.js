@@ -109,6 +109,23 @@
   }
   function bigThumb(id) { return id ? fmt.thumbBig(id) : ''; }
 
+  /** Rekonstruiert die ORIGINALE YouTube-Avatar-URL aus einem Piped-Proxy-Link
+   *  (z. B. proxy…/…=s176-…?host=yt3.ggpht.com → https://yt3.googleusercontent.com/…=s800-…).
+   *  Lädt vom offiziellen YouTube-CDN (googleusercontent) statt über den
+   *  oft defekten Piped-Proxy – zuverlässig & in Originalqualität. */
+  function resolveAvatar(url) {
+    if (!url || typeof url !== 'string') return '';
+    var pathM = /^https?:\/\/[^\/]+(\/[^?]*)/.exec(url);
+    if (!pathM) return url;
+    var path = pathM[1];                          // Original-Pfad (…=s176-…)
+    var proxied = /[?&]host=/.test(url);
+    var isGgpht = /yt3\.ggpht\.com/.test(url);
+    if (!proxied && !isGgpht) return url;         // fremde Quelle unverändert
+    var full = 'https://yt3.googleusercontent.com' + path;
+    full = full.replace(/=s\d+/, '=s800');        // scharfes Original (s176 → s800)
+    return full;
+  }
+
   /** Piped „stream“ → Video */
   function pipedStreamToVideo(s) {
     if (!s) return null;
@@ -120,7 +137,7 @@
       thumbnail: bigThumb(id),
       channelName: s.uploaderName || s.uploader || 'Unbekannter Kanal',
       channelId: channelIdFromUrl(s.uploaderUrl) || '',
-      channelAvatar: s.uploaderAvatar || '',
+      channelAvatar: resolveAvatar(s.uploaderAvatar),
       verified: !!s.uploaderVerified,
       duration: s.duration || 0,
       views: s.views || 0,
@@ -138,7 +155,7 @@
     return {
       id: id,
       name: c.name || c.uploaderName || 'Unbekannter Kanal',
-      avatar: c.avatar || c.thumbnail || c.uploaderAvatar || '',
+      avatar: resolveAvatar(c.avatar || c.thumbnail || c.uploaderAvatar),
       subscribers: c.subscribers || c.subscriberCount || c.followers || 0,
       verified: !!c.verified,
       description: c.description || '',
@@ -358,6 +375,26 @@
     });
   }
 
+  /** Wählt aus der /streams/-Antwort einen direkten, MUXEDEN Stream
+   *  (Ton+Bild in einer Datei) für den nativen <video>-Player – komplett
+   *  werbefrei, da kein YouTube-Player genutzt wird. */
+  function pickPlayable(d) {
+    var vs = (d.videoStreams || []).filter(function (s) {
+      return s && s.url && s.videoOnly === false && s.audioOnly !== true;
+    });
+    if (!vs.length) return null;
+    var mp4 = vs.filter(function (s) {
+      return (s.format || '').toUpperCase() === 'MPEG_4' || /mp4/.test(s.mimeType || '');
+    });
+    var pool = mp4.length ? mp4 : vs;
+    function qnum(s) { var m = /(\d{3,4})/.exec(s.quality || ''); return m ? parseInt(m[1], 10) : 0; }
+    var under = pool.filter(function (s) { var q = qnum(s); return q > 0 && q <= 720; });
+    var use = (under.length ? under : pool).slice();
+    use.sort(function (a, b) { return qnum(a) - qnum(b); });
+    var best = use[use.length - 1];
+    return { url: best.url, quality: best.quality || '', format: best.format || '', mime: best.mimeType || '' };
+  }
+
   function pipedStreams(id) {
     var key = 'streams|' + id;
     var hit = cacheGet(key);
@@ -375,7 +412,7 @@
         thumbnail: bigThumb(id),
         channelName: d.uploader || 'Unbekannter Kanal',
         channelId: channelIdFromUrl(d.uploaderUrl) || '',
-        channelAvatar: d.uploaderAvatar || '',
+        channelAvatar: resolveAvatar(d.uploaderAvatar),
         verified: !!d.uploaderVerified,
         duration: d.duration || 0,
         views: d.views || 0,
@@ -387,7 +424,11 @@
         source: 'piped'
       };
       var related = (d.relatedStreams || []).map(pipedStreamToVideo).filter(Boolean);
-      var out = { video: v, related: related, instance: d.__inst };
+      var out = {
+        video: v, related: related, instance: d.__inst,
+        playable: pickPlayable(d),
+        hls: d.hls || ''
+      };
       cacheSet(key, out, 10 * 60 * 1000);
       return out;
     });
@@ -406,7 +447,7 @@
       var out = {
         id: id,
         name: d.name || '(Kanal)',
-        avatar: d.avatarUrl || d.avatar || '',
+        avatar: resolveAvatar(d.avatarUrl || d.avatar),
         banner: d.bannerUrl || '',
         description: d.description || '',
         subscribers: d.subscriberCount || 0,
@@ -626,6 +667,15 @@
             .map(function (t) { return t; });
         }).catch(function () { return []; });
       }).catch(function () { return []; });
+    },
+
+    /** Wählbarer werbefreier Stream (direkte muxed mp4-URL) für den
+     *  nativen Player. Gibt {url, quality} oder null zurück. */
+    getPlayable: function (id) {
+      if (String(id).indexOf('demo-') === 0) return Promise.resolve(null);
+      return pipedStreams(id).then(function (r) {
+        return r.playable || null;
+      }).catch(function () { return null; });
     },
 
     /** Videodetail (Titel, Kanal, Dauer, Views, Beschreibung) + verwandte Videos */

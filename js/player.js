@@ -11,6 +11,7 @@
 
   var apiPromise = null;
   var player = null;
+  var adfreeEl = null;       // nativer werbefreier <video>-Player
   var currentVideo = null;   // Video-Objekt
   var state = {
     playing: false,
@@ -104,16 +105,82 @@
       return Promise.resolve(null);
     }
 
-    // file:// (Doppelklick): kein Origin -> YouTube lehnt Einbettung mit Code 153 ab.
-    // Statt eines garantierten Fehlers zeigen wir den klaren Server-Hinweis.
+    var container = document.getElementById(containerId);
+    if (!container) return Promise.reject(new Error('Kein Player-Container gefunden'));
+
+    // Unter file:// (Doppelklick) kann YouTube nicht einbetten → klarer Hinweis.
+    // Sonst der offizielle YouTube-Player (zuverlässig; lokal keine Werbung).
     if (YU.isFile && YU.isFile()) {
       if (errorCb) errorCb({ code: 'fileorigin', message: 'fileorigin' });
       return Promise.resolve(null);
     }
+    return mountIframe(containerId, video, opts);
+  }
 
-    var container = document.getElementById(containerId);
-    if (!container) return Promise.reject(new Error('Kein Player-Container gefunden'));
+  /* Werbefreier nativer Player (direkter Stream, kein YouTube-Player).
+   * Wird NUR genutzt, wenn der Stream wirklich lädt (canplay/loadeddata).
+   * Bei Fehler/Timeout → Reject → mount() fällt auf den offiziellen Player
+   * zurück, damit Abspielen IMMER funktioniert. */
+  function mountAdFree(containerId, video, opts) {
+    return YU.api.getPlayable(video.id).then(function (p) {
+      if (!p || !p.url) throw new Error('Kein werbefreier Stream verfügbar');
+      var container = document.getElementById(containerId);
+      if (!container) throw new Error('Kein Player-Container gefunden');
+      container.innerHTML = '';
 
+      var v = document.createElement('video');
+      v.className = 'yu-video';
+      v.setAttribute('controls', '');
+      v.setAttribute('playsinline', '');
+      v.setAttribute('preload', 'auto');
+      v.src = p.url;
+      container.appendChild(v);
+      adfreeEl = v;
+
+      v.addEventListener('loadedmetadata', function () {
+        if (v.duration && isFinite(v.duration)) state.duration = v.duration;
+        if (opts.startSeconds) { try { v.currentTime = opts.startSeconds; } catch (e) {} }
+      });
+      v.addEventListener('play', function () { state.playing = true; state.lastTick = Date.now(); });
+      v.addEventListener('pause', function () { if (state.playing) flush(); state.playing = false; });
+      v.addEventListener('timeupdate', function () {
+        state.position = v.currentTime || 0;
+        if (v.duration && isFinite(v.duration)) state.duration = v.duration;
+        if (Math.floor(state.position) % 10 === 0) YU.reco.trackProgress(currentVideo, state.position, false);
+      });
+      v.addEventListener('ended', function () {
+        state.playing = false; state.completed = true;
+        if (currentVideo) YU.reco.trackComplete(currentVideo);
+        stopTicking();
+        if (onEndedCb) onEndedCb(currentVideo);
+      });
+
+      // Erst zusagen, wenn der Stream tatsächlich lädt.
+      return new Promise(function (resolve, reject) {
+        var settled = false;
+        function ok() {
+          if (settled) return; settled = true;
+          startTicking();
+          // Spätere Abspiel-Unterbrechung ehrlich melden (nach Zusage)
+          v.addEventListener('error', function () {
+            state.playing = false; stopTicking();
+            if (errorCb) errorCb({ code: 'adfree', message: 'Der werbefreie Stream wurde unterbrochen.' });
+          });
+          var pr = v.play();
+          if (pr && pr.catch) pr.catch(function () { /* Autoplay-Sperre: Nutzer startet über Controls */ });
+          resolve({ adfree: true, el: v, quality: p.quality });
+        }
+        function bad() { if (settled) return; settled = true; reject(new Error('Stream nicht abspielbar')); }
+        v.addEventListener('canplay', ok);
+        v.addEventListener('loadeddata', ok);
+        v.addEventListener('error', bad);
+        setTimeout(bad, 6000);
+      });
+    });
+  }
+
+  /* Offizieller YouTube-Player (Fallback – kann YouTube-Werbung zeigen) */
+  function mountIframe(containerId, video, opts) {
     return loadApi().then(function (YT) {
       return new Promise(function (resolve) {
         player = new YT.Player(containerId, {
@@ -176,6 +243,11 @@
   function unmount() {
     flush();
     stopTicking();
+    if (adfreeEl) {
+      try { adfreeEl.pause(); adfreeEl.removeAttribute('src'); adfreeEl.load(); } catch (e) {}
+      if (adfreeEl.parentNode) adfreeEl.parentNode.removeChild(adfreeEl);
+      adfreeEl = null;
+    }
     if (player) {
       try { player.destroy(); } catch (e) {}
       player = null;
@@ -202,6 +274,6 @@
     getPosition: getPosition,
     getDuration: getDuration,
     loadApi: loadApi,
-    isMounted: function () { return !!player; }
+    isMounted: function () { return !!player || !!adfreeEl; }
   };
 })(window.YU = window.YU || {});
