@@ -16,7 +16,10 @@
   --dim: #8d99b8;
   --dim-2: #65719433;
   --accent: #4f8cff;
+  --accent-2: #7aa8ff;                                      /* hellerer Verlauf-Endpunkt */
   --accent-soft: rgba(79, 140, 255, 0.14);
+  --accent-grad: linear-gradient(135deg, #4f8cff, #7aa8ff); /* Akzent-Verlauf */
+  --glow-color: rgba(88, 148, 255, 0.3);                    /* Maus-Lichtschein (folgt Akzent) */
   --danger: #ff6b6b;
   --ok: #4ade80;
   --radius-s: 8px;
@@ -349,7 +352,7 @@ body.sidebar-collapsed .side-link { justify-content: center; padding: 11px 0; }
 }
 .vcard__badge {
   position: absolute; left: 7px; top: 7px;
-  background: var(--accent); color: #fff; font-size: 10.5px; font-weight: 750;
+  background: var(--accent-grad); color: #fff; font-size: 10.5px; font-weight: 750;
   padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: .05em;
 }
 .vcard__badge--neutral { background: #000b; color: var(--dim); text-transform: none; }
@@ -361,7 +364,7 @@ body.sidebar-collapsed .side-link { justify-content: center; padding: 11px 0; }
 .vcard:hover .vcard__play, .vcard:focus-visible .vcard__play { opacity: 1; }
 .vcard__play span {
   width: 54px; height: 54px; border-radius: 50%;
-  background: var(--accent); display: flex; align-items: center; justify-content: center;
+  background: var(--accent-grad); display: flex; align-items: center; justify-content: center;
   color: #fff; box-shadow: var(--shadow-glow);
   transform: scale(0.9); transition: transform .16s ease;
 }
@@ -404,7 +407,7 @@ body.sidebar-collapsed .side-link { justify-content: center; padding: 11px 0; }
   position: absolute; left: 0; right: 0; bottom: 0; height: 3.5px;
   background: #ffffff2e;
 }
-.vcard__progress i { display: block; height: 100%; background: var(--accent); }
+.vcard__progress i { display: block; height: 100%; background: var(--accent-grad); }
 
 /* ============ Listen (Verlauf, Playlists etc.) ============ */
 .rowlist { display: flex; flex-direction: column; gap: 4px; }
@@ -464,8 +467,9 @@ body.sidebar-collapsed .side-link { justify-content: center; padding: 11px 0; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   padding: 10px 20px; border-radius: 999px;
-  background: var(--accent); color: #fff; border: 0;
+  background: var(--accent-grad); color: #fff; border: 0;
   font-size: 14px; font-weight: 650; cursor: pointer;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 40%, transparent);
   transition: transform .13s ease, filter .15s ease;
 }
 .btn:hover { filter: brightness(1.08); }
@@ -657,7 +661,7 @@ body.sidebar-collapsed .side-link { justify-content: center; padding: 11px 0; }
 .short-card__placeholder img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .4; }
 .short-card__placeholder .sp-play {
   position: relative; width: 74px; height: 74px; border-radius: 50%;
-  background: var(--accent); display: flex; align-items: center; justify-content: center;
+  background: var(--accent-grad); display: flex; align-items: center; justify-content: center;
   color: #fff; box-shadow: var(--shadow-glow);
 }
 .short-card__info { position: absolute; left: 14px; right: 66px; bottom: 16px; z-index: 3; text-shadow: 0 1px 8px #000c; }
@@ -719,7 +723,7 @@ body.sidebar-collapsed .side-link { justify-content: center; padding: 11px 0; }
   background: #8d99b8; border-radius: 50%; transition: transform .18s ease, background .18s ease;
 }
 .switch input:checked + .track { background: color-mix(in srgb, var(--accent) 45%, transparent); }
-.switch input:checked + .track::after { transform: translateX(20px); background: var(--accent); }
+.switch input:checked + .track::after { transform: translateX(20px); background: var(--accent-grad); }
 .switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .accent-swatches { display: flex; gap: 9px; flex-wrap: wrap; }
@@ -781,7 +785,7 @@ body.sidebar-collapsed .side-link { justify-content: center; padding: 11px 0; }
 .pl-actions { display: flex; gap: 11px; align-items: center; padding: 18px 0 20px; flex-wrap: wrap; }
 .play-fab {
   width: 56px; height: 56px; border-radius: 50%; border: 0;
-  background: var(--accent); color: #fff; cursor: pointer;
+  background: var(--accent-grad); color: #fff; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   box-shadow: var(--shadow-glow); transition: transform .14s ease;
 }
@@ -893,6 +897,37 @@ body.sidebar-collapsed .side-link { justify-content: center; padding: 11px 0; }
 @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,107,.5); } 50% { box-shadow: 0 0 0 7px rgba(255,107,107,0); } }
 
 .page-enter { animation: fade-up .3s cubic-bezier(.2, .8, .3, 1) both; }
+
+/* ============ Install-Banner (PWA) ============ */
+.install-banner {
+  position: fixed; left: 50%; bottom: 18px; z-index: 900;
+  transform: translate(-50%, 140%);
+  display: flex; align-items: center; gap: 14px;
+  max-width: min(560px, calc(100vw - 28px));
+  padding: 13px 15px;
+  background: linear-gradient(160deg, var(--card), var(--card-2));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-m), 0 0 0 1px var(--accent-soft), 0 10px 40px color-mix(in srgb, var(--accent) 22%, transparent);
+  opacity: 0;
+  transition: transform .34s cubic-bezier(.2, .8, .3, 1), opacity .28s ease;
+}
+.install-banner.is-open { transform: translate(-50%, 0); opacity: 1; }
+.install-banner__icon {
+  flex: 0 0 auto; width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-soft); border-radius: 12px;
+}
+.install-banner__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.install-banner__text b { font-size: 14px; font-weight: 700; }
+.install-banner__text span { font-size: 12px; color: var(--dim); line-height: 1.35; }
+.install-banner__actions { display: flex; gap: 8px; flex: 0 0 auto; margin-left: auto; }
+.install-banner__actions .btn { padding: 8px 15px; font-size: 13px; }
+@media (max-width: 620px) {
+  .install-banner { flex-wrap: wrap; bottom: 12px; }
+  .install-banner__actions { width: 100%; margin-left: 0; }
+  .install-banner__actions .btn { flex: 1; }
+}
 
 /* ============ Reduced Motion ============ */
 @media (prefers-reduced-motion: reduce) {

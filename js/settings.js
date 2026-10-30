@@ -71,11 +71,18 @@
 
     var root = document.documentElement;
     if (s.accent) {
+      var light = lighten(s.accent, 0.28);
       root.style.setProperty('--accent', s.accent);
+      root.style.setProperty('--accent-2', light);
       root.style.setProperty('--accent-soft', hexToRgba(s.accent, 0.14));
+      root.style.setProperty('--accent-grad', 'linear-gradient(135deg, ' + s.accent + ', ' + light + ')');
+      root.style.setProperty('--glow-color', hexToRgba(lighten(s.accent, 0.12), 0.34));
     } else {
       root.style.removeProperty('--accent');
+      root.style.removeProperty('--accent-2');
       root.style.removeProperty('--accent-soft');
+      root.style.removeProperty('--accent-grad');
+      root.style.removeProperty('--glow-color');
     }
     document.body.style.setProperty('--glow-opacity', String(s.glowIntensity || 1));
   }
@@ -85,6 +92,17 @@
     if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
     var n = parseInt(h, 16);
     return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+
+  /** Helligere Variante einer Hex-Farbe (0..1) – für Verlaufs-Endpunkte */
+  function lighten(hex, amt) {
+    var h = String(hex).replace('#', '');
+    if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+    var n = parseInt(h, 16);
+    var r = Math.min(255, Math.round(((n >> 16) & 255) + 255 * amt));
+    var g = Math.min(255, Math.round(((n >> 8) & 255) + 255 * amt));
+    var b = Math.min(255, Math.round((n & 255) + 255 * amt));
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
   }
 
   YU.settings = settings;

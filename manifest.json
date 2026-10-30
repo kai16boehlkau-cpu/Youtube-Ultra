@@ -1,0 +1,19 @@
+{
+  "name": "YouTube Ultra",
+  "short_name": "YT Ultra",
+  "description": "Minimalistische, moderne Video-Oberfläche mit echten YouTube-Inhalten.",
+  "lang": "de",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#050810",
+  "theme_color": "#050810",
+  "categories": ["entertainment", "video"],
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

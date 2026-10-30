@@ -8,6 +8,13 @@
   <meta name="description" content="YouTube Ultra – minimalistische, moderne Video-Oberfläche mit echten YouTube-Inhalten." />
   <title>YouTube Ultra</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23050810'/%3E%3Cpath d='M13 10.5v11l9-5.5z' fill='%234f8cff'/%3E%3C/svg%3E" />
+  <!-- PWA: installierbare Browser-App (Vollbild / Startbildschirm) -->
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="YT Ultra" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -180,5 +187,6 @@
   <script src="js/pages/mine.js"></script>
   <script src="js/router.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/install.js"></script>
 </body>
 </html>
