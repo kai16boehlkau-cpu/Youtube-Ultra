@@ -896,6 +896,20 @@ body.sidebar-collapsed .side-link { justify-content: center; padding: 11px 0; }
   .searchbar input[type="search"] { height: 42px; }
   .searchbar { max-width: none; }
 
+  /* Suche beim Tippen auf volle Breite ausdehnen (Logo + rechte Icons ausblenden) */
+  .topbar.is-searching { gap: 4px; padding: 0 8px; }
+  .topbar.is-searching .topbar__left .logo,
+  .topbar.is-searching .topbar__right { display: none; }
+  .topbar.is-searching .topbar__left { flex: 0 0 auto; }
+  .topbar.is-searching .topbar__center { flex: 1 1 auto; }
+  .topbar.is-searching .searchbar { max-width: none; }
+
+  /* Suchvorschläge: großzügig & gut lesbar über volle Breite */
+  .suggest { max-height: min(70vh, 520px); border-radius: var(--radius-m); }
+  .suggest li { padding: 12px 14px; font-size: 15.5px; gap: 12px; border-radius: 10px; }
+  .suggest li .suggest__term { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .suggest li .suggest__meta { font-size: 11px; flex-shrink: 0; }
+
   /* --- Inhalt: gleichmäßige Ränder --- */
   #view-content { padding: 10px 12px calc(var(--bottomnav-h) + 40px); }
 

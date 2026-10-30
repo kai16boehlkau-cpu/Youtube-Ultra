@@ -43,16 +43,26 @@
     }
   }
 
-  function onMove(e) {
+  function moveTo(x, y) {
     if (!el || !YU.settings.get('glowEnabled')) return;
     if (prefersReduced()) return; // bei reduzierter Bewegung statisch
-    targetX = e.clientX;
-    targetY = e.clientY;
+    targetX = x;
+    targetY = y;
     if (!active) {
       active = true;
       if (curX === 0 && curY === 0) { curX = targetX; curY = targetY; }
       rafId = requestAnimationFrame(tick);
     }
+  }
+
+  function onMove(e) {
+    moveTo(e.clientX, e.clientY);
+  }
+
+  function onTouch(e) {
+    // Finger: Schein mitführen. Kein preventDefault → Scrollen bleibt möglich.
+    if (!e.touches || !e.touches.length) return; // touchend → letzte Position behalten
+    moveTo(e.touches[0].clientX, e.touches[0].clientY);
   }
 
   function staticPosition() {
@@ -71,15 +81,21 @@
 
     var isTouch = window.matchMedia && window.matchMedia('(hover: none)').matches;
 
-    if (isTouch || prefersReduced()) {
-      // Touch / reduzierte Bewegung: statisch & dezent, keine Listener
+    if (prefersReduced()) {
+      // Reduzierte Bewegung: statisch & dezent
       staticPosition();
-      if (prefersReduced()) el.style.opacity = '0.55';
-      window.addEventListener('resize', function () { if (prefersReduced() || isTouch) staticPosition(); });
+      el.style.opacity = '0.55';
+      window.addEventListener('resize', function () { if (prefersReduced()) staticPosition(); });
       return;
     }
 
-    window.addEventListener('mousemove', onMove, { passive: true });
+    if (isTouch) {
+      // Touch / Tablet: Lichtschein folgt dem Finger
+      window.addEventListener('touchstart', onTouch, { passive: true });
+      window.addEventListener('touchmove', onTouch, { passive: true });
+    } else {
+      window.addEventListener('mousemove', onMove, { passive: true });
+    }
     window.addEventListener('resize', function () {
       // Ziel bei Größenänderung anpassen (ohne Sprung-Ansprung)
       targetX = Math.min(targetX, window.innerWidth);

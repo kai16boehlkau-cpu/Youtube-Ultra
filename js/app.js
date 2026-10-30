@@ -144,6 +144,9 @@
     });
 
     input.addEventListener('focus', function () {
+      // Mobil: Suche beim Tippen auf volle Breite ausdehnen (vergrößert auch die Vorschläge)
+      var tb = document.querySelector('.topbar');
+      if (tb) tb.classList.add('is-searching');
       fetchSuggestions();
     });
 
@@ -173,7 +176,11 @@
     });
 
     input.addEventListener('blur', function () {
-      setTimeout(closeSuggest, 120);
+      setTimeout(function () {
+        closeSuggest();
+        var tb = document.querySelector('.topbar');
+        if (tb) tb.classList.remove('is-searching');
+      }, 120);
     });
 
     clear.addEventListener('click', function () {
