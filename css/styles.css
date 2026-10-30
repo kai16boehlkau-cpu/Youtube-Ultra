@@ -867,23 +867,73 @@ body.sidebar-collapsed .side-link { justify-content: center; padding: 11px 0; }
   .bottomnav__link.is-active svg { color: var(--accent); }
   .vgrid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 22px 14px; }
   .vrow { grid-template-columns: 118px minmax(0, 1fr) auto; gap: 11px; }
-  .chips { top: -16px; }
+  .chips { top: 0; }
   .channel-head { margin: -16px -16px 0; }
   .channel-info { padding: 0 16px; }
   .channel-actions { padding: 14px 16px 4px; }
 }
 @media (max-width: 620px) {
-  .vgrid { grid-template-columns: 1fr; }
-  .vgrid--compact { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
-  .topbar__right .iconbtn { width: 37px; height: 37px; }
+  /* --- Touch: keine grauen Klick-Ränder, flüssiges Scrollen --- */
+  * { -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  /* --- Kartenraster --- */
+  .vgrid { grid-template-columns: 1fr; gap: 22px 0; }
+  .vgrid--compact { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px 12px; }
+  .vcard { gap: 9px; }
+  .vcard__title { font-size: 15px; line-height: 1.32; letter-spacing: -0.01em; }
+  .vcard__channel, .vcard__stats { font-size: 13px; margin-top: 4px; }
+  /* Menü-Button: größerer Tap-Bereich, dezent */
+  .vcard__menu { width: 34px; height: 34px; right: 3px; top: 3px; background: #0009; backdrop-filter: blur(4px); opacity: 1; }
+  .vcard__menu::after { content: ""; position: absolute; inset: -8px; } /* vergrößerter Trefferbereich */
+
+  /* --- Topbar: ruhiger, mehr Platz für die Suche --- */
+  .topbar { padding: 0 8px; gap: 6px; }
+  .topbar__left { gap: 2px; }
+  .topbar__right { gap: 1px; }
+  .topbar__right .iconbtn { width: 40px; height: 40px; }
   #btn-create { display: none; }
-  .searchbar input[type="search"] { height: 40px; }
+  .searchbar input[type="search"] { height: 42px; }
+  .searchbar { max-width: none; }
+
+  /* --- Inhalt: gleichmäßige Ränder --- */
+  #view-content { padding: 10px 12px calc(var(--bottomnav-h) + 40px); }
+
+  /* --- Gruß-Block: kompakt, keine Platzverschwendung --- */
+  .greeting { font-size: 20px; margin: 2px 0 3px; letter-spacing: -0.02em; }
+  .greeting-sub { font-size: 12.5px; margin: 0 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* --- Chips: sauber unter der Topbar pinnen, randlos scrollen --- */
+  .chips {
+    top: 0; margin: 0 -12px; padding: 9px 12px 11px;
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  }
+  .chip { padding: 8px 15px; font-size: 13px; }
+
+  /* --- Watch: Player randlos (Vollbild-Gefühl wie die YT-App) --- */
+  .watch { margin: -10px -12px 0; }
+  .watch #player-shell { border-radius: 0; border-left: 0; border-right: 0; border-top: 0; margin: 0; }
+  .watch__main > *:not(#player-shell) { padding-left: 12px; padding-right: 12px; }
+  .watch__side { padding-left: 12px; padding-right: 12px; }
+
+  /* --- Bottom-Nav: aktiver Indikator mit Akzent-Verlauf --- */
+  .bottomnav { box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45); }
+  .bottomnav__link { position: relative; padding: 8px 14px; min-width: 58px; border-radius: 12px; transition: color .15s ease; }
+  .bottomnav__link.is-active::before {
+    content: ""; position: absolute; top: 1px; left: 50%; transform: translateX(-50%);
+    width: 22px; height: 3px; border-radius: 0 0 3px 3px; background: var(--accent-grad);
+  }
+  .bottomnav__link:active { transform: scale(0.94); }
+
+  /* --- Sonstige Mobile-Regeln --- */
   .mini { grid-template-columns: 132px minmax(0, 1fr); }
   .pl-item img { width: 76px; height: 44px; }
   .pl-item .idx { display: none; }
-  .shorts-feed { height: calc(100dvh - var(--topbar-h) - var(--bottomnav-h) - 30px); }
+  .shorts-feed { height: calc(100dvh - var(--topbar-h) - var(--bottomnav-h) - 24px); }
   .settings-grid { grid-template-columns: 1fr; }
-  .vrow { grid-template-columns: 96px minmax(0, 1fr); }
+  .vrow { grid-template-columns: 100px minmax(0, 1fr); gap: 10px; }
   .vrow__actions { display: none; }
 }
 
