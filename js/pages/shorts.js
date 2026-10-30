@@ -23,9 +23,20 @@
   var byId = {};
   var order = [];        // Video-Objekte in Anzeige-Reihenfolge
   var activeIdx = 0;
-  var muted = true;      // Auto-Play muss stumm starten (Browser-Regel)
+  var muted = loadMutePref(); // Ton-Einstellung merken (erster Start stumm, Browser-Regel)
+  var preloadTimers = {}; // gestaffeltes Vorab-Mounten
+
+  var PRELOAD_AHEAD = 7;  // wie viele nächste Videos vorab gemountet werden
+  var KEEP_BEHIND = 2;    // wie viele zurückliegende gemountet bleiben
 
   var SHORTS_QUERIES = ['shorts deutsch', 'short funny deutsch', 'kurz video lustig', 'shorts minecraft', 'shorts musik'];
+
+  // Ton-Präferenz (damit man NUR einmal entstummen muss)
+  function loadMutePref() {
+    try { var v = localStorage.getItem('yu.shorts.muted'); return v === null ? true : v === '1'; }
+    catch (e) { return true; }
+  }
+  function saveMutePref() { try { localStorage.setItem('yu.shorts.muted', muted ? '1' : '0'); } catch (e) {} }
 
   /* ---------- Render ---------- */
   function render(container) {
@@ -52,9 +63,11 @@
     });
     overlay.querySelector('[data-mute]').addEventListener('click', function () {
       muted = !muted;
-      var cur = order[activeIdx];
-      var p = cur && players[cur.id];
-      if (p) { try { if (muted) p.mute(); else p.unMute(); } catch (e) {} }
+      saveMutePref();
+      // Allen (auch vorab geladenen) Playern sofort anwenden → nächste Videos haben Ton
+      Object.keys(players).forEach(function (id) {
+        try { if (muted) players[id].mute(); else players[id].unMute(); } catch (e) {}
+      });
       updateMuteBtn();
     });
 
@@ -190,22 +203,47 @@
 
   function setActive(idx) {
     if (idx == null || idx < 0 || idx >= order.length) return;
-    var cur = order[activeIdx];
-    if (idx === activeIdx && cur && players[cur.id]) { play(idx); return; }
+    var prev = order[activeIdx];
+    if (idx === activeIdx && prev && players[prev.id]) { play(idx); return; }
     activeIdx = idx;
+
     order.forEach(function (v, i) {
-      var dist = Math.abs(i - idx);
+      var ahead = i - idx;   // >0 = bevorstehend
+      var behind = idx - i;  // >0 = bereits gesehen
       if (i === idx) {
-        ensurePlayer(v).then(function () { play(idx); });
-      } else if (players[v.id]) {
-        try { players[v.id].pauseVideo(); } catch (e) {}
-        if (dist > 1) destroyPlayer(v.id); // weit entfernte Player freigeben
+        // aktiv → mounten (Auto-Play stumm) und starten
+        ensurePlayer(v, true).then(function () { play(idx); });
+      } else if (ahead > 0 && ahead <= PRELOAD_AHEAD) {
+        // nächste Videos vorab mounten (nicht starten) → kein Ruckeln/Ladebildschirm
+        schedulePreload(v, ahead);
+      } else if (behind > 0 && behind <= KEEP_BEHIND) {
+        // letzte paar gemountet halten (pausiert) → schnelles Zurückwischen
+        clearPreload(v.id);
+        if (players[v.id]) { try { players[v.id].pauseVideo(); } catch (e) {} }
+        else ensurePlayer(v, false);
+      } else {
+        // weit entfernt → freigeben
+        clearPreload(v.id);
+        if (players[v.id]) destroyPlayer(v.id);
       }
     });
   }
 
+  // Gestaffelt vorab mounten, damit nicht alle Player auf einmal per Netz stoßen
+  function schedulePreload(v, ahead) {
+    if (players[v.id]) return;
+    clearPreload(v.id);
+    preloadTimers[v.id] = setTimeout(function () {
+      delete preloadTimers[v.id];
+      ensurePlayer(v, false);
+    }, Math.min(ahead, 6) * 150);
+  }
+  function clearPreload(id) {
+    if (preloadTimers[id]) { clearTimeout(preloadTimers[id]); delete preloadTimers[id]; }
+  }
+
   /* ---------- Player (offizieller YouTube-Player, controls:0) ---------- */
-  function ensurePlayer(v) {
+  function ensurePlayer(v, autoplay) {
     return new Promise(function (resolve) {
       if (!v) return resolve(null);
       if (players[v.id]) return resolve(players[v.id]);
@@ -222,7 +260,7 @@
           height: '100%',
           width: '100%',
           playerVars: {
-            autoplay: 1, mute: muted ? 1 : 0, playsinline: 1,
+            autoplay: autoplay ? 1 : 0, mute: muted ? 1 : 0, playsinline: 1,
             controls: 0, rel: 0, modestbranding: 1, showinfo: 0, iv_load_policy: 3
           },
           events: {
@@ -240,7 +278,10 @@
   function play(idx) {
     var v = order[idx];
     if (!v || !players[v.id]) return;
+    clearPreload(v.id);
     try { players[v.id].playVideo(); } catch (e) {}
+    // Ton-Status anwenden (auch bei vorab geladenen, stumm erzeugten Playern)
+    try { if (muted) players[v.id].mute(); else players[v.id].unMute(); } catch (e) {}
     setBigPlay(idx, false);
     startProgress(idx);
     if (!v._tracked) { v._tracked = 1; YU.reco.trackWatchStart(v); }
@@ -287,6 +328,7 @@
   function stopProgress() { if (progressTimer) { clearInterval(progressTimer); progressTimer = null; } }
 
   function destroyPlayer(id) {
+    clearPreload(id);
     var card = mounted[id];
     try { if (players[id] && players[id].destroy) players[id].destroy(); } catch (e) {}
     delete players[id];
@@ -319,7 +361,7 @@
     stopProgress();
     Object.keys(players).forEach(function (id) { try { if (players[id] && players[id].destroy) players[id].destroy(); } catch (e) {} });
     players = {}; mounted = {}; byId = {}; order = [];
-    activeIdx = 0; muted = true; feedEl = null; overlay = null;
+    activeIdx = 0; muted = loadMutePref(); feedEl = null; overlay = null;
   }
 
   YU.pages = YU.pages || {};
