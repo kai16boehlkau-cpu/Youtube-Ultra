@@ -26,6 +26,7 @@
   var muted = loadMutePref(); // Ton-Einstellung merken (erster Start stumm, Browser-Regel)
   var preloadTimers = {}; // gestaffeltes Vorab-Mounten
   var visibleRatios = {}; // idx -> aktuelles Sichtverhältnis (für aktiven Short)
+  var resizeHandler = null;
 
   var PRELOAD_AHEAD = 7;  // wie viele nächste Videos vorab gemountet werden
   var KEEP_BEHIND = 2;    // wie viele zurückliegende gemountet bleiben
@@ -71,6 +72,15 @@
       });
       updateMuteBtn();
     });
+
+    // Bei Größenwechsel (Drehen, Fenster) alle Player neu überdeckend skalieren
+    if (resizeHandler) window.removeEventListener('resize', resizeHandler);
+    resizeHandler = function () {
+      Object.keys(mounted).forEach(function (id) {
+        if (players[id]) sizePlayerToCover(mounted[id], players[id]);
+      });
+    };
+    window.addEventListener('resize', resizeHandler);
 
     load(container);
   }
@@ -276,7 +286,11 @@
             controls: 0, rel: 0, modestbranding: 1, showinfo: 0, iv_load_policy: 3
           },
           events: {
-            onReady: function () { try { if (muted) p.mute(); else p.unMute(); } catch (e) {} resolve(p); },
+            onReady: function () {
+              try { if (muted) p.mute(); else p.unMute(); } catch (e) {}
+              sizePlayerToCover(card, p);
+              resolve(p);
+            },
             onStateChange: function (e) { onState(e, v); },
             onError: function () { showError(card, v); resolve(null); }
           }
@@ -285,6 +299,29 @@
         mounted[v.id] = card;
       }).catch(function () { showError(card, v); resolve(null); });
     });
+  }
+
+  /* Spieler so skalieren, dass er die volle Höhe füllt und die
+     Seiten wie bei TikTok/Instagram beschnitten werden – kein
+     schwarzer Balken oben/unten auf hohen Handy-Screens. */
+  function sizePlayerToCover(card, p) {
+    try {
+      if (!card || !p || !p.getIframe) return;
+      var frame = p.getIframe();
+      if (!frame || !frame.parentNode || !card.contains(frame.parentNode)) return;
+      var h = card.clientHeight;
+      var w = card.clientWidth;
+      if (!h || !w) return;
+      // 9:16-Video auf volle Höhe – Breite ergibt sich daraus (Beschnitt seitlich)
+      var targetW = Math.round(h * 9 / 16);
+      if (targetW < w) targetW = w; // nie schmaler als die Karte
+      frame.style.position = 'absolute';
+      frame.style.top = '0';
+      frame.style.height = h + 'px';
+      frame.style.width = targetW + 'px';
+      frame.style.left = Math.round((w - targetW) / 2) + 'px';
+      frame.style.pointerEvents = 'none';
+    } catch (e) {}
   }
 
   function play(idx) {
@@ -370,6 +407,7 @@
 
   function destroy() {
     if (observer) { observer.disconnect(); observer = null; }
+    if (resizeHandler) { window.removeEventListener('resize', resizeHandler); resizeHandler = null; }
     stopProgress();
     Object.keys(players).forEach(function (id) { try { if (players[id] && players[id].destroy) players[id].destroy(); } catch (e) {} });
     players = {}; mounted = {}; byId = {}; order = []; visibleRatios = {};
