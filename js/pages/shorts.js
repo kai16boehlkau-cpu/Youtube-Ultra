@@ -25,6 +25,7 @@
   var activeIdx = 0;
   var muted = loadMutePref(); // Ton-Einstellung merken (erster Start stumm, Browser-Regel)
   var preloadTimers = {}; // gestaffeltes Vorab-Mounten
+  var visibleRatios = {}; // idx -> aktuelles Sichtverhältnis (für aktiven Short)
 
   var PRELOAD_AHEAD = 7;  // wie viele nächste Videos vorab gemountet werden
   var KEEP_BEHIND = 2;    // wie viele zurückliegende gemountet bleiben
@@ -191,13 +192,20 @@
   /* ---------- Sichtbarkeit → aktiven Short wählen ---------- */
   function setupObserver(body) {
     if (!('IntersectionObserver' in window)) { setActive(0); return; }
+    visibleRatios = {};
     observer = new IntersectionObserver(function (entries) {
       entries.forEach(function (en) {
-        if (en.isIntersecting && en.intersectionRatio >= 0.55) {
-          setActive(parseInt(en.target.dataset.idx, 10));
-        }
+        var i = parseInt(en.target.dataset.idx, 10);
+        visibleRatios[i] = en.isIntersecting ? en.intersectionRatio : 0;
       });
-    }, { root: feedEl, threshold: [0.55, 0.8] });
+      // Das am stärksten sichtbare Video wird aktiv (robust bei Scrollen in beide Richtungen)
+      var best = -1, bestRatio = 0;
+      Object.keys(visibleRatios).forEach(function (k) {
+        var r = visibleRatios[k];
+        if (r > bestRatio) { bestRatio = r; best = parseInt(k, 10); }
+      });
+      if (best >= 0 && bestRatio >= 0.55 && best !== activeIdx) setActive(best);
+    }, { root: feedEl, threshold: [0, 0.3, 0.55, 0.7, 0.85, 1] });
     body.querySelectorAll('.short-card').forEach(function (c) { observer.observe(c); });
   }
 
@@ -206,6 +214,11 @@
     var prev = order[activeIdx];
     if (idx === activeIdx && prev && players[prev.id]) { play(idx); return; }
     activeIdx = idx;
+
+    // Sicherheit: ALLE anhalten – danach spielt garantiert nur der aktive Short
+    Object.keys(players).forEach(function (id) {
+      try { players[id].pauseVideo(); } catch (e) {}
+    });
 
     order.forEach(function (v, i) {
       var ahead = i - idx;   // >0 = bevorstehend
@@ -219,8 +232,7 @@
       } else if (behind > 0 && behind <= KEEP_BEHIND) {
         // letzte paar gemountet halten (pausiert) → schnelles Zurückwischen
         clearPreload(v.id);
-        if (players[v.id]) { try { players[v.id].pauseVideo(); } catch (e) {} }
-        else ensurePlayer(v, false);
+        if (!players[v.id]) ensurePlayer(v, false);
       } else {
         // weit entfernt → freigeben
         clearPreload(v.id);
@@ -360,7 +372,7 @@
     if (observer) { observer.disconnect(); observer = null; }
     stopProgress();
     Object.keys(players).forEach(function (id) { try { if (players[id] && players[id].destroy) players[id].destroy(); } catch (e) {} });
-    players = {}; mounted = {}; byId = {}; order = [];
+    players = {}; mounted = {}; byId = {}; order = []; visibleRatios = {};
     activeIdx = 0; muted = loadMutePref(); feedEl = null; overlay = null;
   }
 
